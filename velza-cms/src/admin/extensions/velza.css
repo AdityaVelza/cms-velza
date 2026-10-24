@@ -1,0 +1,73 @@
+/*
+ * Velza Global admin typography.
+ * Poppins is served from local files (SIL Open Font License, see ./fonts/OFL.txt).
+ * Weights match the Strapi design system: regular 400, semiBold 500, bold 600.
+ */
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/Poppins-Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/Poppins-Medium.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/Poppins-SemiBold.ttf') format('truetype');
+}
+
+/*
+ * The design system sets its font stack on `body` at runtime. The `html` prefix gives this
+ * rule higher specificity without depending on Strapi's generated class names.
+ */
+html body,
+html button,
+html input,
+html select,
+html textarea {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+    Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+/*
+ * White-label: Strapi promotional elements that have no configuration option in 5.58.
+ * Each rule is anchored on the element's own Strapi URL, so it can only match that element.
+ * If a Strapi upgrade changes the markup, a rule stops matching and the element reappears;
+ * nothing else is hidden. See ../CUSTOMIZATIONS.md.
+ */
+
+/* Main navigation: Marketplace link (external link to market.strapi.io). */
+nav li:has(a[href='https://market.strapi.io']),
+nav a[href='https://market.strapi.io'] {
+  display: none !important;
+}
+
+/* Settings > Overview: "Plan" card (Community plan, pricing or billing link). */
+main div:has(> div > a[href^='https://strapi.io/pricing']),
+main div:has(> div > a[href^='https://billing.strapi.io']) {
+  display: none !important;
+}
+
+/* Settings > Overview: "Support" card (Strapi community links and diagnostic snapshot). */
+main div:has(> div > div > div > a[href='https://docs.strapi.io']) {
+  display: none !important;
+}
+
+/*
+ * Media Library: "Introducing the new Media Library" banner (link to the Strapi blog). The legacy
+ * variant links to a docs page that a header doc link can share, so it is not matched here.
+ */
+div:has(> div > div > div > a[href^='https://strapi.io/blog/']) {
+  display: none !important;
+}

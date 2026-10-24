@@ -1,0 +1,9 @@
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreRouter('api::news-article.news-article', {
+  only: ['find', 'findOne'],
+  config: {
+    find: { middlewares: ['global::published-only'] },
+    findOne: { middlewares: ['global::published-only'] },
+  },
+});

@@ -1,0 +1,52 @@
+# Velza Global CMS repository: velza-cms/ (Strapi) and integration/ (local tooling and tests).
+# velza-cms/.gitignore keeps Strapi's own exclusions; the rules below cover the whole repository.
+
+# Local-only material at the repository root
+/backups/
+/phase-6*.md
+/swc-cache/
+
+# Environment files and secrets (safe templates stay tracked)
+.env
+.env.*
+!.env.example
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+
+# Dependencies
+**/node_modules/
+
+# Local databases (SQLite test data, journals and WAL files)
+**/*.db
+**/*.db-journal
+**/*.db-wal
+**/*.db-shm
+**/*.sqlite
+**/*.sqlite3
+**/*.sqlite-journal
+
+# Strapi generated output, runtime state and uploaded media
+velza-cms/.tmp/
+velza-cms/dist/
+velza-cms/.strapi/
+velza-cms/.strapi-updater.json
+velza-cms/public/uploads/*
+!velza-cms/public/uploads/.gitkeep
+
+# Logs, coverage and temporary files
+*.log
+npm-debug.log*
+coverage/
+.tmp/
+tmp/
+*.tmp
+*.tsbuildinfo
+
+# Editor and OS metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
