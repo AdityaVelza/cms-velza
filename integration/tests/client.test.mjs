@@ -140,6 +140,32 @@ test('slow responses time out', async () => {
   await assert.rejects(client.listBlogs(), (e) => e.kind === 'timeout');
 });
 
+test('a body that stalls after the headers also times out', async () => {
+  // Headers arrive at once; the JSON body never completes and ignores the abort signal.
+  const stalledBody = async () => ({ ok: true, status: 200, json: () => new Promise(() => {}) });
+  const client = createVelzaCmsClient({ baseUrl: BASE, fetch: stalledBody, timeoutMs: 20 });
+  const started = Date.now();
+  await assert.rejects(client.listBlogs(), (e) => e instanceof CmsError && e.kind === 'timeout');
+  assert.ok(Date.now() - started < 2000, 'rejects promptly at the deadline');
+});
+
+test('a fast response is not affected by the timeout after it completes', async () => {
+  const client = createVelzaCmsClient({ baseUrl: BASE, fetch: mockFetch(() => jsonResponse(200, { data: [], meta: {} })), timeoutMs: 20 });
+  assert.deepEqual((await client.listBlogs()).items, []);
+  await new Promise((r) => setTimeout(r, 40)); // the deadline firing later must not throw an unhandled rejection
+});
+
+test('buildQuery accepts fields and a populate override; defaults are unchanged', () => {
+  const q = buildQuery('blogs', { region: 'hk', fields: ['title', 'slug'], populate: { featuredImage: true } });
+  assert.deepEqual(q.fields, ['title', 'slug']);
+  assert.deepEqual(q.populate, { featuredImage: true });
+  assert.equal(q.filters.regions.slug.$eq, 'hk');
+  const d = buildQuery('blogs');
+  assert.equal(d.fields, undefined);
+  assert.equal(d.populate.seo.populate.shareImage, true);
+  assert.equal(buildQuery('blogs', { populate: null }).populate, undefined, 'null disables populate');
+});
+
 test('mediaUrl resolves relative, absolute, format and missing media', () => {
   const media = { url: '/uploads/a.jpg', formats: { small: { url: '/uploads/small_a.jpg' } } };
   assert.equal(mediaUrl(media, { mediaBaseUrl: 'http://cms.test/' }), 'http://cms.test/uploads/a.jpg');

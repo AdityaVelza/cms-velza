@@ -90,7 +90,43 @@ const blog = (over = {}) => ({ documentId: 'd1', title: 'Hello World', slug: 'he
 // ---- pure functions -------------------------------------------------------------------------
 test('toCardModel maps a Strapi 5 blog to card values', () => {
   const m = toCardModel(blog(), (x) => (x ? `http://cms.local${x.url}` : null), baseConfig);
-  assert.deepEqual(m, { href: '/blogs/hello-world', title: 'HELLO WORLD', imageSrc: 'http://cms.local/uploads/a.jpg', imageAlt: 'Alt', usedPlaceholder: false });
+  assert.deepEqual(m, { href: '/blogs/hello-world', title: 'HELLO WORLD', imageSrc: 'http://cms.local/uploads/a.jpg', imageAlt: 'Alt', imageWidth: null, imageHeight: null, usedPlaceholder: false });
+});
+
+test('toCardModel takes the intrinsic size of the media variant it uses', () => {
+  const media = { url: '/uploads/a.jpg', width: 2000, height: 1000, formats: { medium: { url: '/uploads/m_a.jpg', width: 750, height: 375 } } };
+  const resolve = (x) => (x ? `http://cms.local${x.url}` : null);
+  const medium = toCardModel(blog({ featuredImage: media }), resolve, baseConfig);
+  assert.deepEqual([medium.imageWidth, medium.imageHeight], [750, 375]);
+  const original = toCardModel(blog({ featuredImage: { ...media, formats: {} } }), resolve, baseConfig);
+  assert.deepEqual([original.imageWidth, original.imageHeight], [2000, 1000]);
+  const placeholder = toCardModel(blog({ featuredImage: null }), () => null, baseConfig);
+  assert.deepEqual([placeholder.imageWidth, placeholder.imageHeight], [null, null], 'no size for the placeholder');
+  const bad = toCardModel(blog({ featuredImage: { url: '/uploads/a.jpg', width: '0', height: 'x' } }), resolve, baseConfig);
+  assert.deepEqual([bad.imageWidth, bad.imageHeight], [null, null], 'invalid sizes are ignored');
+});
+
+test('buildCard sets intrinsic size and decoding only when the size is known', () => {
+  const doc = fakeDocument([]);
+  const sized = buildCard(doc, { href: '/blogs/x', title: 'X', imageSrc: '/i.jpg', imageAlt: 'a', imageWidth: 750, imageHeight: 375, linked: true })
+    .find((n) => n.tagName === 'IMG');
+  assert.equal(sized.getAttribute('width'), '750');
+  assert.equal(sized.getAttribute('height'), '375');
+  assert.equal(sized.getAttribute('decoding'), 'async');
+  const unsized = buildCard(doc, { href: '/blogs/x', title: 'X', imageSrc: '/i.jpg', imageAlt: 'a', linked: true })
+    .find((n) => n.tagName === 'IMG');
+  assert.equal(unsized.getAttribute('width'), null);
+  assert.equal(unsized.getAttribute('height'), null);
+});
+
+test('listings request only the card fields and the featured image', async () => {
+  const c = listContainer('hk');
+  const factory = fakeClientFactory({ items: [blog()] });
+  await enhanceBlogListing(fakeDocument([c]), baseConfig, factory);
+  const q = factory.calls[0].q;
+  assert.deepEqual(q.fields, ['title', 'slug', 'publicationDate']);
+  assert.deepEqual(q.populate, { featuredImage: true });
+  assert.equal(q.region, 'hk-test');
 });
 
 test('toCardModel uses the placeholder image and title alt when media is missing', () => {
@@ -217,6 +253,26 @@ test('website config is disabled by default and holds no token or real CMS URL',
   assert.equal(cmsConfig.detailPages, false, 'detail pages stay off until server rendering is deployed');
   const text = readFileSync(new URL(moduleUrl('cms-config.js')), 'utf8');
   assert.doesNotMatch(text, /token\s*:/i, 'no token property in public config');
+});
+
+test('CMS environment is chosen per host; unknown hosts and non-https origins stay disabled', async () => {
+  const { selectCmsEnvironment, CMS_ENVIRONMENTS } = await import(moduleUrl('cms-config.js'));
+  const envs = {
+    'www.example.test': { baseUrl: 'https://cms.example.test/', mediaBaseUrl: 'https://media.example.test' },
+    'staging.example.test': { baseUrl: 'http://cms-staging.example.test' }, // not https -> refused
+    'odd.example.test': { baseUrl: 'https://cms.example.test/api' }, // path -> refused (origin only)
+  };
+  assert.deepEqual(selectCmsEnvironment('www.example.test', envs), { baseUrl: 'https://cms.example.test', mediaBaseUrl: 'https://media.example.test' });
+  assert.deepEqual(selectCmsEnvironment('WWW.EXAMPLE.TEST', envs).baseUrl, 'https://cms.example.test', 'hostname is case-insensitive');
+  assert.equal(selectCmsEnvironment('staging.example.test', envs).baseUrl, null);
+  assert.equal(selectCmsEnvironment('odd.example.test', envs).baseUrl, null);
+  for (const host of ['localhost', '127.0.0.1', 'velzaglobal.com', '', undefined]) {
+    assert.equal(selectCmsEnvironment(host, envs).baseUrl, null, `host ${host} must stay disabled`);
+  }
+  // The real table has only the production and staging hosts, and both are still placeholders (no hosted CMS yet).
+  assert.deepEqual(Object.keys(CMS_ENVIRONMENTS).sort(), ['staging.velzaglobal.com', 'www.velzaglobal.com']);
+  for (const host of Object.keys(CMS_ENVIRONMENTS)) assert.equal(selectCmsEnvironment(host).baseUrl, null);
+  for (const env of Object.values(CMS_ENVIRONMENTS)) assert.doesNotMatch(String(env.baseUrl), /localhost|127\.0\.0\.1/);
 });
 
 test('website client copy is identical to the integration kit client', () => {
