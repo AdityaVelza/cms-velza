@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sections": {
+    "collectionTypes": {
+      "groups": [
+        {
+          "id": "velza-website-content",
+          "name": "Website Content",
+          "parent": null,
+          "children": [
+            { "type": "contentType", "uid": "api::blog.blog" },
+            { "type": "contentType", "uid": "api::news-article.news-article" },
+            { "type": "contentType", "uid": "api::region.region" }
+          ]
+        }
+      ]
+    },
+    "singleTypes": {
+      "groups": []
+    }
+  }
+}

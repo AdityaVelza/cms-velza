@@ -5,7 +5,7 @@
   "description": "Dependency-free client and tests for reading the Velza Strapi Content API",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/client.test.mjs tests/content-listing.test.mjs tests/article-renderer.test.mjs tests/e2e-cms-pages.test.mjs",
+    "test": "node --test tests/client.test.mjs tests/content-listing.test.mjs tests/article-renderer.test.mjs tests/e2e-cms-pages.test.mjs tests/worker.test.mjs tests/cms-config.test.mjs",
     "dev:site": "node tools/dev-site-server.mjs",
     "dev:mock-cms": "node tools/mock-cms-server.mjs",
     "test:live-local": "node --test tests/live-local.test.mjs"

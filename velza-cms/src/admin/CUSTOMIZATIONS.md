@@ -16,6 +16,8 @@ Re-check this list after every Strapi upgrade (`npm run build`, then the checks 
 | Profile language help | Link to Strapi docs removed | Official: translation without `{here}` | `extensions/translations.ts` |
 | Page header "?" documentation button | Hidden everywhere | Official: `flags.docLinks: false` (env `FLAG_DOC_LINKS`) | `config/admin.ts` |
 | Entry sidebar "Set up preview" documentation link | Removed | Official: `preview.enabled: false` (preview is not set up for the website) | `config/admin.ts` |
+| Content Manager sidebar order | "Website Content" folder with Blog, News Article, Region (in that order) above the other collection types | Official: Content-Type Builder folders (`groups.json`; also editable in the builder's folder UI) | `src/content-structure/groups.json` |
+| Newsletter Issue in the Content Manager | Hidden until newsletters are introduced; the type, its table, data, API routes and permissions are unchanged. Re-enable by removing the option | Official: `pluginOptions['content-manager'].visible: false` | `src/api/newsletter-issue/content-types/newsletter-issue/schema.json` |
 | NPS survey, Enterprise promotions | Off | Official: `flags.nps`, `flags.promoteEE` | `config/admin.ts` |
 | Release notifications | Off | Official: `config.notifications.releases: false` | `app.tsx` |
 | Strapi Cloud nav link, page, home widget | Removed | Official: `'strapi-cloud': { enabled: false }` | `config/plugins.ts` |

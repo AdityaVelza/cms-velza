@@ -39,6 +39,65 @@ test('formatDate gives the site date style in UTC', () => {
   assert.equal(formatDate('not a date'), null);
 });
 
+const ZONES = { hk: 'Asia/Hong_Kong', in: 'Asia/Kolkata', ph: 'Asia/Manila' };
+
+test('formatDate: a UTC timestamp shows the calendar date of each region at its midnight boundary', () => {
+  // 27 Oct 2026 00:00 India time, as stored by Strapi (the live-test bug: shown as Oct 26 in UTC).
+  assert.equal(formatDate('2026-10-26T18:30:00.000Z').label, 'Oct 26, 2026', 'no zone: UTC, unchanged');
+  for (const tz of Object.values(ZONES)) assert.deepEqual(formatDate('2026-10-26T18:30:00.000Z', tz), { iso: '2026-10-27', label: 'Oct 27, 2026' }, tz);
+  assert.equal(formatDate('2026-10-26T18:29:59.999Z', ZONES.in).iso, '2026-10-26', 'one ms before India midnight');
+  // 27 Oct 2026 00:00 Hong Kong / Manila time (UTC+8).
+  assert.equal(formatDate('2026-10-26T16:00:00.000Z', ZONES.hk).iso, '2026-10-27');
+  assert.equal(formatDate('2026-10-26T16:00:00.000Z', ZONES.ph).iso, '2026-10-27');
+  assert.equal(formatDate('2026-10-26T15:59:59.999Z', ZONES.hk).iso, '2026-10-26', 'one ms before Hong Kong midnight');
+  assert.equal(formatDate('2026-10-26T15:59:59.999Z', ZONES.ph).iso, '2026-10-26', 'one ms before Manila midnight');
+  assert.equal(formatDate('2026-10-26T16:00:00.000Z', ZONES.in).iso, '2026-10-26', 'same instant is still Oct 26 in India');
+  // Month and year roll over in the zone, not in UTC.
+  assert.deepEqual(formatDate('2026-12-31T16:30:00.000Z', ZONES.hk), { iso: '2027-01-01', label: 'Jan 01, 2027' });
+  assert.equal(formatDate('2026-12-31T16:30:00.000Z', ZONES.in).iso, '2026-12-31');
+});
+
+test('formatDate: legitimate timestamps are not shifted, date-only values keep their calendar date', () => {
+  for (const tz of [undefined, ...Object.values(ZONES)]) {
+    assert.equal(formatDate('2026-10-27T06:00:00.000Z', tz).iso, '2026-10-27', `midday UTC, ${tz}`);
+    assert.deepEqual(formatDate('2026-10-27', tz), { iso: '2026-10-27', label: 'Oct 27, 2026' }, `date-only, ${tz}`);
+  }
+  assert.equal(formatDate('2026-10-27T00:00:00+05:30', ZONES.in).iso, '2026-10-27', 'explicit offset');
+  assert.equal(formatDate('2026-10-27T00:00:00+05:30').iso, '2026-10-26', 'explicit offset, UTC');
+  assert.equal(formatDate('2026-10-26T18:30:00.000Z', 'Not/AZone').iso, '2026-10-26', 'unknown zone falls back to UTC');
+  assert.equal(formatDate('2026-02-30'), null, 'impossible date-only value');
+  assert.equal(formatDate(null, ZONES.hk), null);
+});
+
+test('article pages show the publication date in their region, on the page and in JSON-LD; meta times stay UTC', async () => {
+  const cms = await startMockStrapi();
+  try {
+    const allRegions = [{ slug: 'mock-hk' }, { slug: 'mock-in' }, { slug: 'mock-ph' }];
+    cms.state.blogs.push(
+      makeEntry({ slug: 'india-midnight', regions: allRegions, publicationDate: '2026-10-26T18:30:00.000Z', updatedAt: '2026-10-26T18:30:00.000Z' }),
+      makeEntry({ slug: 'utc8-midnight', regions: allRegions, publicationDate: '2026-10-26T16:00:00.000Z', updatedAt: '2026-10-26T16:00:00.000Z' }),
+    );
+    const expected = {
+      'india-midnight': { hk: '2026-10-27', in: '2026-10-27', ph: '2026-10-27' },
+      'utc8-midnight': { hk: '2026-10-27', in: '2026-10-26', ph: '2026-10-27' },
+    };
+    for (const [slug, byRegion] of Object.entries(expected)) {
+      for (const [region, iso] of Object.entries(byRegion)) {
+        const out = await renderArticle({ type: 'blogs', slug, region, template: template(region, 'blogs'), config: cfgFor(cms.url) });
+        assert.equal(out.status, 200);
+        const label = formatDate(iso).label;
+        assert.match(out.body, new RegExp(`<time datetime="${iso}">${label}</time>`), `${slug} ${region} visible date`);
+        assert.match(out.body, new RegExp(`"datePublished": "${iso}"`), `${slug} ${region} JSON-LD datePublished`);
+        assert.match(out.body, new RegExp(`"dateModified": "${iso}"`), `${slug} ${region} JSON-LD dateModified`);
+        const utc = cms.state.blogs.find((e) => e.slug === slug).publicationDate;
+        assert.match(out.body, new RegExp(`property="article:published_time" content="${utc}"`), `${slug} ${region} meta time unchanged`);
+      }
+    }
+  } finally {
+    await cms.close();
+  }
+});
+
 // ---- blocks ----------------------------------------------------------------------------------
 test('blocks render headings, lists, quotes, code, images and inline marks with escaping', () => {
   const html = renderBlocks([

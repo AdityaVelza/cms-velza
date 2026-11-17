@@ -19,7 +19,7 @@ Nothing here changes the CMS project, its database or any live website.
   - `shared/js/velza-cms/cms-config.js` (**disabled by default**, placeholders)
   - `shared/js/velza-cms/content-listing.js` (progressive enhancement of blog and news listings)
   - `regions/{hk,in,ph}/{blogs,news}.html` (+6 lines each: wrapper `data-cms` attributes and one module script tag)
-- **Tools (localhost only):** `tools/dev-site-server.mjs` (serves the website repo's checked-out branch with region routing; optional `DEV_CMS_URL` override), `tools/mock-cms-server.mjs` (Strapi-5-shaped `/api/blogs` and `/api/news-articles`).
+- **Tools (localhost only):** `tools/dev-site-server.mjs` (serves the website repo's checked-out branch with region routing; optional `DEV_CMS_URL` override), `tools/mock-cms-server.mjs` (Strapi-5-shaped `/api/blogs` and `/api/news-articles`). Worker runtime test: `tools/worker-runtime-upstream.mjs` (origin with the `.htaccess` model on :8098, seeded mock CMS on :1399) for `wrangler dev --local-upstream`, and `tools/worker-runtime-smoke.mjs` (11 checks against the Worker on :8787; see the website's `server/cms/README.md`).
 - **Tests:** `tests/content-listing.test.mjs` (15 tests; reads the website repo via `WEBSITE_ROOT`, default above).
 - **Fallback (intentional):** with `fallbackToStatic: true` (default) the existing static cards remain whenever the CMS is disabled, unreachable, returns an error, or has no published entries for the region.
 - **Detail links (Phase 7B.3):** a CMS card links to `/blogs/<slug>` or `/news/<slug>` only if the page's own static cards already link there (a static detail page is known to exist). Other CMS cards render without links (`vg-cms-card--no-detail`, title in a `<span>`), so no visitor is sent to a 404.
@@ -50,8 +50,8 @@ Strapi REST API  ──(published-only middleware, strictParams, maxLimit 100)�
 - **Media path:** the local upload provider serves `/uploads/*` without authentication; the client resolves relative URLs against `mediaBaseUrl` (defaults to the CMS origin). A CDN/media origin is a placeholder until confirmed.
 - **Regional content:** filter by the `regions` relation slug. Region slugs/codes are pending decision F6a; canonical URLs pending F4b/F4c.
 - **Permissions:** Public role must be granted `find`/`findOne` on the read types only (admin action; Phase 5 checklist). Write routes on Author/Category/Region must not be public (Phase 5 M2).
-- **CORS:** currently reflects any origin with credentials (Phase 5 M1). Before production, `config/middlewares.ts` must list the confirmed regional site origins (code change; needs approval + confirmed domains).
-- **HTTPS:** required for CMS and media origins in production; proxy/`url` settings pending (Phase 5 M4).
+- **CORS:** exact-origin allow-list from `CORS_ORIGINS` (`config/middlewares.ts`), no credentials, GET/HEAD/OPTIONS only; unset = no cross-origin access; `*` or malformed entries stop startup. Local `.env` lists the dev site only. Staging/production values are pending the confirmed site origins (B2). `X-Powered-By` is removed.
+- **HTTPS:** required for CMS and media origins in production. `PUBLIC_URL` (server `url`) and `IS_PROXIED` (Koa proxy trust) are configured in `config/server.ts`; values are set per environment once the CMS domain is decided.
 - **Environment config:** per-environment `baseUrl`/`mediaBaseUrl` in the frontend; CMS-side `.env` unchanged.
 
 ## 3. Content mapping (website pages are UNVERIFIED — fill in once the site source is available)
@@ -104,7 +104,7 @@ Behaviour **not** implemented on purpose (pending Phase 6 decisions): hiding exp
 | C2 | Admin | Users & Permissions review: registration off/limited; Public = find/findOne on read types only | Admin access | Admin confirmation / read-only check | No — pending approval |
 | C3 | Admin | Create real region records (codes per F6a) and content | B1, C2 | Records visible via API | No |
 | D1 | Deploy | Host Strapi over HTTPS (`url`, `proxy`, `NODE_ENV=production`, `strapi start`) | Hosting access, C1 | Reachable HTTPS CMS URL | No — no hosting evidence |
-| D2 | Deploy | CORS allow-list of confirmed site origins; remove `poweredBy` | B2, approval of code change | Live preflight rejects unlisted origins | No |
+| D2 | Deploy | Set `CORS_ORIGINS` to the confirmed site origins (code done: allow-list, `poweredBy` removed) | B2 | Live preflight rejects unlisted origins | No — origins pending |
 | D3 | Deploy | Media origin/CDN decision and `mediaBaseUrl` | B2, E4 decision | Images load from final origin | No |
 | D4 | Deploy | Deploy the website build that uses the client, per region | A3, D1–D3 | Staging site renders CMS content | No |
 | E1 | Release | Staging end-to-end: listings, details, regions, SEO tags, images, errors | D4 | Phase 7B/8 test report | No |

@@ -31,7 +31,7 @@ export const makeEntry = (over = {}) => {
   };
 };
 
-export const startMockStrapi = async () => {
+export const startMockStrapi = async ({ port: listenPort = 0 } = {}) => {
   const state = { blogs: [], 'news-articles': [], fail: false, requests: [] };
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://local');
@@ -53,7 +53,7 @@ export const startMockStrapi = async () => {
       .sort((a, b) => String(b.publicationDate).localeCompare(String(a.publicationDate)));
     send(200, { data: data.slice(0, pageSize), meta: { pagination: { page: 1, pageSize, pageCount: 1, total: data.length } } });
   });
-  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  await new Promise((r) => server.listen(listenPort, '127.0.0.1', r));
   const { port } = server.address();
   return { state, url: `http://127.0.0.1:${port}`, close: () => new Promise((r) => server.close(r)) };
 };

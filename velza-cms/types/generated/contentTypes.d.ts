@@ -619,6 +619,11 @@ export interface ApiNewsletterIssueNewsletterIssue
   options: {
     draftAndPublish: true;
   };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+  };
   attributes: {
     content: Schema.Attribute.Blocks & Schema.Attribute.Required;
     coverImage: Schema.Attribute.Media<'images'>;

@@ -211,7 +211,7 @@ test('LISTINGS covers exactly blog and news listings', () => {
 test('website config is disabled by default and holds no token or real CMS URL', async () => {
   const { cmsConfig } = await import(moduleUrl('cms-config.js'));
   assert.equal(cmsConfig.baseUrl, null);
-  assert.deepEqual(cmsConfig.regionSlugs, { hk: null, ph: null, in: null });
+  assert.deepEqual(cmsConfig.regionSlugs, { hk: 'hk', ph: 'ph', in: 'in' });
   assert.equal(cmsConfig.fallbackToStatic, true);
   assert.equal(cmsConfig.listingMode, 'merge');
   assert.equal(cmsConfig.detailPages, false, 'detail pages stay off until server rendering is deployed');

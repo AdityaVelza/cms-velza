@@ -1,6 +1,7 @@
 import type { StrapiApp } from '@strapi/strapi/admin';
 
-import loginLogo from './extensions/velza-logo-login.png';
+// White logo on a transparent background, for the dark login card (padding trimmed from the brand file).
+import loginLogo from './extensions/velza-logo-login-white.png';
 import menuLogo from './extensions/velza-mark.png';
 import { en } from './extensions/translations';
 // Imported as text: Strapi 5.58 writes its own index.html for production builds and does not link
